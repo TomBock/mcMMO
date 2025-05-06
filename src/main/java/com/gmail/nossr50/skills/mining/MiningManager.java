@@ -225,7 +225,7 @@ public class MiningManager extends SkillManager {
             if (isDropIllegal(block.getType()))
                 continue;
 
-            if (block.getType().isItem() && Probability.ofPercent(10).evaluate()) {
+            if (block.getType().isItem() && Probability.ofPercent(50).evaluate()) {
                 ItemUtils.spawnItem(getPlayer(),
                         getBlockCenter(block),
                         new ItemStack(block.getType()),
@@ -235,7 +235,7 @@ public class MiningManager extends SkillManager {
 
         for (Block block : ores) {
             // currentOreYield only used for drop calculations for ores
-            float currentOreYield = Math.min(increasedYieldFromBonuses, 3F);
+            float currentOreYield = increasedYieldFromBonuses;
 
             if (isDropIllegal(block.getType())) {
                 continue;
@@ -252,14 +252,12 @@ public class MiningManager extends SkillManager {
                             oreDrops, BLAST_MINING_BLACKLIST, ItemSpawnReason.BLAST_MINING_ORES);
 
                     if (mcMMO.p.getAdvancedConfig().isBlastMiningBonusDropsEnabled()) {
-                        if (Probability.ofValue(0.5F).evaluate()) {
-                            for (int i = 1; i < dropMultiplier; i++) {
-                                ItemUtils.spawnItems(getPlayer(),
-                                        getBlockCenter(block),
-                                        oreDrops,
-                                        BLAST_MINING_BLACKLIST,
-                                        ItemSpawnReason.BLAST_MINING_ORES_BONUS_DROP);
-                            }
+                        for (int i = 1; i < dropMultiplier; i++) {
+                            ItemUtils.spawnItems(getPlayer(),
+                                    getBlockCenter(block),
+                                    oreDrops,
+                                    BLAST_MINING_BLACKLIST,
+                                    ItemSpawnReason.BLAST_MINING_ORES_BONUS_DROP);
                         }
                     }
                 }
