@@ -1,3 +1,11 @@
+## Fork
+This is a fork of  [mcMMO-Dev/mcMMO](https://github.com/mcMMO-Dev/mcMMO).
+
+Changes in this fork are for a specific Server:
+- Removed ore drop ceiling
+- Guarantee extra drops for ores
+- 50% chance for non-ore drops
+
 # mcMMO
 The #1 RPG Mod for Minecraft
 
