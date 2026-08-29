@@ -9,6 +9,7 @@ import java.io.File;
 import java.util.HashMap;
 import java.util.Map;
 import org.bukkit.configuration.file.YamlConfiguration;
+import org.jetbrains.annotations.VisibleForTesting;
 
 public class FormulaManager {
     private static final File formulaFile = new File(mcMMO.getFlatFileDirectory() + "formula.yml");
@@ -25,6 +26,13 @@ public class FormulaManager {
         /* Setting for Classic Mode (Scales a lot of stuff up by * 10) */
         initExperienceNeededMaps();
         loadFormula();
+    }
+
+    @VisibleForTesting
+    public FormulaManager(FormulaType previousFormulaType) {
+        /* Setting for Classic Mode (Scales a lot of stuff up by * 10) */
+        initExperienceNeededMaps();
+        this.previousFormula = previousFormulaType;
     }
 
     /**
@@ -119,7 +127,7 @@ public class FormulaManager {
          */
 
         //TODO: When the heck is Unknown used?
-        if (formulaType == FormulaType.UNKNOWN) {
+        if (formulaType == null || formulaType == FormulaType.UNKNOWN) {
             formulaType = FormulaType.LINEAR;
         }
 
@@ -149,13 +157,13 @@ public class FormulaManager {
      * @return raw xp needed to reach the next level
      */
     private int processStandardXPToNextLevel(int level, FormulaType formulaType) {
-        Map<Integer, Integer> experienceMapRef =
+        final Map<Integer, Integer> experienceMapRef =
                 formulaType == FormulaType.LINEAR ? experienceNeededStandardLinear
                         : experienceNeededStandardExponential;
 
-        if (!experienceMapRef.containsKey(level)) {
-            int experienceSum = 0;
-            int retroIndex = (level * 10) + 1;
+        return experienceMapRef.computeIfAbsent(level, key -> {
+            long experienceSum = 0;
+            final int retroIndex = (key * 10) + 1;
 
             //Sum the range of levels in Retro that this Standard level would represent
             for (int x = retroIndex; x < (retroIndex + 10); x++) {
@@ -163,10 +171,10 @@ public class FormulaManager {
                 experienceSum += calculateXPNeeded(x, formulaType);
             }
 
-            experienceMapRef.put(level, experienceSum);
-        }
-
-        return experienceMapRef.get(level);
+            // The sum can pass Integer.MAX_VALUE at extreme levels and wrap to a garbage
+            // value, negative or far too small; saturate so the requirement stays valid
+            return (int) Math.min(experienceSum, Integer.MAX_VALUE);
+        });
     }
 
     /**
@@ -178,16 +186,12 @@ public class FormulaManager {
      * @return raw xp needed to reach the next level based on formula type
      */
     private int processXPRetroToNextLevel(int level, FormulaType formulaType) {
-        Map<Integer, Integer> experienceMapRef =
+        final Map<Integer, Integer> experienceMapRef =
                 formulaType == FormulaType.LINEAR ? experienceNeededRetroLinear
                         : experienceNeededRetroExponential;
 
-        if (!experienceMapRef.containsKey(level)) {
-            int experience = calculateXPNeeded(level, formulaType);
-            experienceMapRef.put(level, experience);
-        }
-
-        return experienceMapRef.get(level);
+        return experienceMapRef.computeIfAbsent(level,
+                key -> calculateXPNeeded(key, formulaType));
     }
 
     /**
@@ -199,21 +203,28 @@ public class FormulaManager {
      * @return the raw XP needed for the next level based on formula type
      */
     private int calculateXPNeeded(int level, FormulaType formulaType) {
-        int base = ExperienceConfig.getInstance().getBase(formulaType);
-        double multiplier = ExperienceConfig.getInstance().getMultiplier(formulaType);
-
-        switch (formulaType) {
-            case LINEAR:
-                return (int) Math.floor(base + level * multiplier);
-            case EXPONENTIAL:
-                double exponent = ExperienceConfig.getInstance().getExponent(formulaType);
-                return (int) Math.floor(multiplier * Math.pow(level, exponent) + base);
-            default:
-                //TODO: Should never be called
-                mcMMO.p.getLogger()
-                        .severe("Invalid formula specified for calculation, defaulting to Linear");
-                return calculateXPNeeded(level, FormulaType.LINEAR);
+        if (formulaType != FormulaType.LINEAR && formulaType != FormulaType.EXPONENTIAL) {
+            //TODO: Should never be called
+            mcMMO.p.getLogger()
+                    .severe("Invalid formula specified for calculation, defaulting to Linear");
+            formulaType = FormulaType.LINEAR;
         }
+
+        final int base = ExperienceConfig.getInstance().getBase(formulaType);
+        final double multiplier = ExperienceConfig.getInstance().getMultiplier(formulaType);
+
+        final double xpNeeded;
+        if (formulaType == FormulaType.EXPONENTIAL) {
+            final double exponent = ExperienceConfig.getInstance().getExponent(formulaType);
+            xpNeeded = multiplier * Math.pow(level, exponent) + base;
+        } else {
+            xpNeeded = base + level * multiplier;
+        }
+
+        // Config values like a negative base can push the requirement to zero or below; the
+        // level-up loop never drains banked XP then and gains levels nonstop until the
+        // level cap; the (int) narrowing already caps values past Integer.MAX_VALUE
+        return Math.max(1, (int) Math.floor(xpNeeded));
     }
 
     /**

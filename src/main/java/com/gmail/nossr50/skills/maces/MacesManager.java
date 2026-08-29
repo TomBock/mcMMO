@@ -47,7 +47,8 @@ public class MacesManager extends SkillManager {
         int rank = RankUtils.getRank(getPlayer(), SubSkillType.MACES_CRUSH);
 
         if (rank > 0) {
-            return (0.5D + (rank * 1.D));
+            return mcMMO.p.getAdvancedConfig().getCrushBaseDamage()
+                    + (rank * mcMMO.p.getAdvancedConfig().getCrushRankDamageMultiplier());
         }
 
         return 0;
@@ -57,8 +58,21 @@ public class MacesManager extends SkillManager {
      * Process Cripple attack.
      *
      * @param target The defending entity
+     * @deprecated use {@link #processCripple(LivingEntity, double)} instead; this overload reads
+     * the live attack cooldown, which is unreliable during damage events on Paper 26.1.2+
      */
+    @Deprecated(forRemoval = true, since = "2.3.000")
     public void processCripple(@NotNull LivingEntity target) {
+        processCripple(target, mmoPlayer.getAttackStrength());
+    }
+
+    /**
+     * Process Cripple attack.
+     *
+     * @param target The defending entity
+     * @param attackStrengthScale the committed attack strength of the hit, from 0.0 to 1.0
+     */
+    public void processCripple(@NotNull LivingEntity target, double attackStrengthScale) {
         // Lazy initialized to avoid some backwards compatibility issues
         if (slowEffectType == null) {
             if (mockSpigotMatch("slowness") == null) {
@@ -82,7 +96,7 @@ public class MacesManager extends SkillManager {
 
         int crippleRank = RankUtils.getRank(getPlayer(), SubSkillType.MACES_CRIPPLE);
         double crippleOdds = (mcMMO.p.getAdvancedConfig().getCrippleChanceToApplyOnHit(crippleRank)
-                * mmoPlayer.getAttackStrength());
+                * attackStrengthScale);
 
         if (ProbabilityUtil.isStaticSkillRNGSuccessful(PrimarySkillType.MACES, mmoPlayer,
                 crippleOdds)) {

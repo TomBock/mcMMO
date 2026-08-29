@@ -12,23 +12,41 @@ public final class Salvage {
     private Salvage() {
     }
 
+    /**
+     * No longer used by mcMMO internally, use the config calls instead.
+     * @see com.gmail.nossr50.config.GeneralConfig
+     */
+    @Deprecated(since = "2.2.052", forRemoval = true)
     public static Material anvilMaterial = mcMMO.p.getGeneralConfig().getSalvageAnvilMaterial();
 
-    /*public static int    salvageMaxPercentageLevel = mcMMO.p.getAdvancedConfig().getSalvageMaxPercentageLevel();
-    public static double salvageMaxPercentage      = mcMMO.p.getAdvancedConfig().getSalvageMaxPercentage();
-
-    public static int advancedSalvageUnlockLevel = RankUtils.getRankUnlockLevel(SubSkillType.SALVAGE_SCRAP_COLLECTOR, 1);*/
-
+    /**
+     * No longer used by mcMMO internally, use the config calls instead.
+     * @see com.gmail.nossr50.config.AdvancedConfig
+     */
+    @Deprecated(since = "2.2.052", forRemoval = true)
     public static boolean arcaneSalvageDowngrades = mcMMO.p.getAdvancedConfig()
             .getArcaneSalvageEnchantDowngradeEnabled();
+
+    /**
+     * No longer used by mcMMO internally, use the config calls instead.
+     * @see com.gmail.nossr50.config.AdvancedConfig
+     */
+    @Deprecated(since = "2.2.052", forRemoval = true)
     public static boolean arcaneSalvageEnchantLoss = mcMMO.p.getAdvancedConfig()
             .getArcaneSalvageEnchantLossEnabled();
 
     static int calculateSalvageableAmount(int currentDurability, short maxDurability,
             int baseAmount) {
-        double percentDamaged = (maxDurability <= 0) ? 1D
+        double percentRemaining = (maxDurability <= 0) ? 1D
                 : (double) (maxDurability - currentDurability) / maxDurability;
 
-        return (int) Math.floor(baseAmount * percentDamaged);
+        if (percentRemaining <= 0) {
+            return 0;
+        }
+
+        // Deliberately floors to zero: full materials only come back from a fully repaired
+        // item. Guaranteeing a minimum yield for damaged items would let players re-craft a
+        // brand-new full-durability item from a nearly broken one.
+        return (int) Math.floor(baseAmount * percentRemaining);
     }
 }

@@ -8,8 +8,6 @@ import com.gmail.nossr50.datatypes.player.McMMOPlayer;
 import com.gmail.nossr50.datatypes.skills.PrimarySkillType;
 import com.gmail.nossr50.datatypes.skills.SubSkillType;
 import com.gmail.nossr50.mcMMO;
-import com.gmail.nossr50.skills.repair.Repair;
-import com.gmail.nossr50.skills.salvage.Salvage;
 import com.gmail.nossr50.util.player.UserManager;
 import com.gmail.nossr50.util.random.ProbabilityUtil;
 import java.util.HashSet;
@@ -27,6 +25,7 @@ public final class BlockUtils {
 
     public static final String SHORT_GRASS = "SHORT_GRASS";
     public static final String GRASS = "GRASS";
+    private static final HashSet<Material> TRANSPARENT_BLOCKS = buildTransparentBlocks();
 
     private BlockUtils() {
     }
@@ -86,6 +85,9 @@ public final class BlockUtils {
         // Failsafe against lingering metadata
         if (block.hasMetadata(MetadataConstants.METADATA_KEY_BONUS_DROPS)) {
             block.removeMetadata(MetadataConstants.METADATA_KEY_BONUS_DROPS, mcMMO.p);
+        }
+        if (block.hasMetadata(MetadataConstants.METADATA_KEY_EXCAVATION_TREASURE_ROLL)) {
+            block.removeMetadata(MetadataConstants.METADATA_KEY_EXCAVATION_TREASURE_ROLL, mcMMO.p);
         }
     }
 
@@ -232,8 +234,8 @@ public final class BlockUtils {
      */
     public static boolean canActivateTools(BlockState blockState) {
         return !mcMMO.getMaterialMapStore().isToolActivationBlackListed(blockState.getType())
-                && blockState.getType() != Repair.anvilMaterial
-                && blockState.getType() != Salvage.anvilMaterial;
+                && blockState.getType() != mcMMO.p.getGeneralConfig().getRepairAnvilMaterial()
+                && blockState.getType() != mcMMO.p.getGeneralConfig().getSalvageAnvilMaterial();
     }
 
     /**
@@ -379,23 +381,6 @@ public final class BlockUtils {
         return mcMMO.getMaterialMapStore().isTreeFellerDestructible(material);
     }
 
-//    /**
-//     * Determine if a given block should be affected by Flux Mining
-//     *
-//     * @param blockState The {@link BlockState} of the block to check
-//     * @return true if the block should affected by Flux Mining, false otherwise
-//     */
-//    public static boolean affectedByFluxMining(BlockState blockState) {
-//        switch (blockState.getType()) {
-//            case IRON_ORE:
-//            case GOLD_ORE:
-//                return true;
-//
-//            default:
-//                return false;
-//        }
-//    }
-
     /**
      * Determine if a given block can activate Herbalism abilities
      *
@@ -443,7 +428,8 @@ public final class BlockUtils {
     public static boolean isMcMMOAnvil(BlockState blockState) {
         Material type = blockState.getType();
 
-        return type == Repair.anvilMaterial || type == Salvage.anvilMaterial;
+        return type == mcMMO.p.getGeneralConfig().getRepairAnvilMaterial()
+                || type == mcMMO.p.getGeneralConfig().getSalvageAnvilMaterial();
     }
 
     public static boolean isPistonPiece(BlockState blockState) {
@@ -455,10 +441,14 @@ public final class BlockUtils {
     /**
      * Get a HashSet containing every transparent block
      *
-     * @return HashSet with the IDs of every transparent block
+     * @return HashSet with the IDs of every transparent block; callers must not modify it
      */
     public static HashSet<Material> getTransparentBlocks() {
-        HashSet<Material> transparentBlocks = new HashSet<>();
+        return TRANSPARENT_BLOCKS;
+    }
+
+    private static HashSet<Material> buildTransparentBlocks() {
+        final HashSet<Material> transparentBlocks = new HashSet<>();
 
         for (Material material : Material.values()) {
             if (material.isTransparent()) {
@@ -481,7 +471,8 @@ public final class BlockUtils {
     }
 
     public static boolean isPartOfTree(Block block) {
-        return hasWoodcuttingXP(block.getState()) || isNonWoodPartOfTree(block.getType());
+        final Material material = block.getType();
+        return hasWoodcuttingXP(material) || isNonWoodPartOfTree(material);
     }
 
     /**

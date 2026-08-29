@@ -251,8 +251,10 @@ public class Roll extends AcrobaticsSubSkill {
                 = isGraceful ? getGracefulProbability(mmoPlayer)
                 : getNonGracefulProbability(mmoPlayer);
 
-        double modifiedDamage = calculateModifiedRollDamage(baseDamage,
-                mcMMO.p.getAdvancedConfig().getRollDamageThreshold() * 2);
+        final double damageThreshold = isGraceful
+                ? mcMMO.p.getAdvancedConfig().getGracefulRollDamageThreshold()
+                : mcMMO.p.getAdvancedConfig().getRollDamageThreshold();
+        double modifiedDamage = calculateModifiedRollDamage(baseDamage, damageThreshold);
         rollResultBuilder.modifiedDamage(modifiedDamage);
 
         boolean isExploiting = isPlayerExploitingAcrobatics(mmoPlayer);
@@ -345,7 +347,8 @@ public class Roll extends AcrobaticsSubSkill {
         return xp;
     }
 
-    protected static double calculateModifiedRollDamage(double damage, double damageThreshold) {
+    @VisibleForTesting
+    public static double calculateModifiedRollDamage(double damage, double damageThreshold) {
         return Math.max(damage - damageThreshold, 0.0);
     }
 
@@ -361,46 +364,6 @@ public class Roll extends AcrobaticsSubSkill {
     @Override
     public int getNumRanks() {
         return 0;
-    }
-
-    /**
-     * Prints detailed info about this subskill to the player
-     *
-     * @param mmoPlayer the target player
-     */
-    @Override
-    public void printInfo(McMMOPlayer mmoPlayer) {
-        //Header
-        super.printInfo(mmoPlayer);
-
-        //Start the description string.
-        //player.sendMessage(getDescription());
-        //Player stats
-        mmoPlayer.getPlayer().sendMessage(LocaleLoader.getString("Commands.MmoInfo.Stats",
-                LocaleLoader.getString("Acrobatics.SubSkill.Roll.Stats", getStats(mmoPlayer))));
-
-        //Mechanics
-        mmoPlayer.getPlayer().sendMessage(LocaleLoader.getString("Commands.MmoInfo.Mechanics"));
-        mmoPlayer.getPlayer().sendMessage(getMechanics());
-    }
-
-    @Override
-    public String getMechanics() {
-        return "Under Construction: This will work in a future update.";
-    }
-
-    /**
-     * Get an array of various stats for a player
-     *
-     * @param mmoPlayer target player
-     * @return stat array for target player for this skill
-     */
-    @Override
-    public Double[] getStats(McMMOPlayer mmoPlayer) {
-        double playerChanceRoll = getSubSkillProbability(subSkillType, mmoPlayer).getValue();
-        double playerChanceGrace = playerChanceRoll * 2;
-
-        return new Double[]{playerChanceRoll, playerChanceGrace};
     }
 
     public void addFallLocation(@NotNull McMMOPlayer mmoPlayer) {

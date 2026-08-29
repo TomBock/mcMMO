@@ -63,12 +63,9 @@ public class TamingManager extends SkillManager {
 
         //Init per-player tracking of summoned entities
         mcMMO.getTransientEntityTracker().initPlayer(mmoPlayer.getPlayer());
-
-        //Hacky stuff used as a band-aid
-        initStaticCaches();
     }
 
-    private void initStaticCaches() {
+    public static void initStaticCaches() {
         //TODO: Temporary static cache, will be changed in 2.2
         //This is shared between instances of TamingManager
         if (summoningItems == null) {
@@ -127,7 +124,7 @@ public class TamingManager extends SkillManager {
     }
 
     public boolean canUseHolyHound() {
-        return RankUtils.hasUnlockedSubskill(getPlayer(), SubSkillType.TAMING_ENVIRONMENTALLY_AWARE)
+        return RankUtils.hasUnlockedSubskill(getPlayer(), SubSkillType.TAMING_HOLY_HOUND)
                 && Permissions.isSubSkillEnabled(getPlayer(), SubSkillType.TAMING_HOLY_HOUND);
     }
 
@@ -337,19 +334,19 @@ public class TamingManager extends SkillManager {
                 return;
             }
         }
-        double range = 5;
-        Player player = getPlayer();
+        final double range = 5;
+        final Player player = getPlayer();
 
         if (!target.getWorld().equals(player.getWorld())) {
             return;
         }
 
-        for (Entity entity : player.getNearbyEntities(range, range, range)) {
+        for (Entity entity : target.getNearbyEntities(range, range, range)) {
             if (entity.getType() != EntityType.WOLF) {
                 continue;
             }
 
-            Wolf wolf = (Wolf) entity;
+            final Wolf wolf = (Wolf) entity;
 
             if (!wolf.isTamed() || (wolf.getOwner() != player) || wolf.isSitting()) {
                 continue;
